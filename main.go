@@ -94,7 +94,7 @@ func main() {
 
 	modified, cleanup, err := watcher(watchDirs, filterPaths)
 	if err != nil {
-		slog.Error("starting watcher: %w", err)
+		slog.Error("starting watcher", "error", err)
 		os.Exit(1)
 	}
 	defer cleanup()
