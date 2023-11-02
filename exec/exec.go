@@ -11,7 +11,12 @@ type Partial struct {
 }
 
 func NewPartial(args ...string) *Partial {
-	p := Partial{*osexec.Command(args[0], args[1:]...)}
+	p := Partial{}
+	if len(args) == 0 {
+		p.Err = fmt.Errorf("no executable file provided")
+		return &p
+	}
+	p.Cmd = *osexec.Command(args[0], args[1:]...)
 	p.Stdout = os.Stdout
 	p.Stderr = os.Stderr
 	return &p
@@ -22,7 +27,7 @@ func (p *Partial) Run(args ...string) error {
 	cmd.Args = append(cmd.Args, args...)
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("error exec %s: %w", cmd.String(), err)
+		return fmt.Errorf("exec %s: %w", cmd.String(), err)
 	}
 	return nil
 }

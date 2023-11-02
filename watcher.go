@@ -20,7 +20,7 @@ func watcher(paths []string, filter Filter) (<-chan string, func(), error) {
 	}
 	fswatcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating watcher: %w", err)
+		return nil, nil, fmt.Errorf("creating watcher: %w", err)
 	}
 	cleanup := func() {
 		fswatcher.Close()
@@ -34,7 +34,7 @@ func watcher(paths []string, filter Filter) (<-chan string, func(), error) {
 		err = fswatcher.Add(path)
 		if err != nil {
 			cleanup()
-			return nil, nil, fmt.Errorf("error adding path: %w", err)
+			return nil, nil, fmt.Errorf("adding path '%v': %w", path, err)
 		}
 	}
 	return files, cleanup, nil
@@ -65,7 +65,7 @@ func watchLoop(fswatcher *fsnotify.Watcher, filter Filter) <-chan string {
 				if !ok {
 					break loop
 				}
-				slog.Error("wathcher error", "error", err)
+				slog.Error("watcher error", "error", err)
 			}
 		}
 	}()
