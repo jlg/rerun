@@ -79,3 +79,41 @@ func TestCommandLine(t *testing.T) {
 		t.Fatalf("%s terminated by: signal %v", rerun.Path, err)
 	}
 }
+
+func TestRerun(t *testing.T) {
+	stdout := os.Stdout
+	defer func() {
+		os.Stdout = stdout
+	}()
+
+	tempDir := t.TempDir()
+	rerun := Rerun{
+		watchDirs:   []string{tempDir},
+		maxFiles:    2,
+		waitFor:     20 * time.Millisecond,
+		commandArgs: []string{"echo"},
+	}
+	rerun.filterPaths.mustRegexp(`.*\.skip`, "\n")
+
+	r, w, err := os.Pipe()
+	internal.NoErr(t, err)
+	os.Stdout = w
+
+	cancel, err := rerun.Start()
+	internal.NoErr(t, err)
+
+	f1 := writeTemp(tempDir, "file1-*.no", "1234567890")
+
+	scanner := bufio.NewScanner(r)
+	expectTokens(t, scanner, f1)
+
+	f2 := writeTemp(tempDir, "file2-*.yes", "12345")
+	writeTemp(tempDir, "file3-*.skip", "123")
+	f3 := writeTemp(tempDir, "file4-*.maybe", "")
+
+	expectTokens(t, scanner, f2, f3)
+
+	cancel()
+	err = rerun.Wait()
+	internal.NoErr(t, err)
+}

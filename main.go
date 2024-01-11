@@ -33,6 +33,43 @@ func (f *multiFlag) Set(value string) error {
 	return nil
 }
 
+type Rerun struct {
+	watchDirs   []string
+	filterPaths FilterPaths
+	maxFiles    int
+	waitFor     time.Duration
+	commandArgs []string
+	clearTerm   bool
+	done        chan struct{}
+}
+
+func (r *Rerun) Start() (func(), error) {
+	skipArgs := r.maxFiles == 0
+	r.done = make(chan struct{})
+
+	modified, cleanup, err := watcher(r.watchDirs, r.filterPaths)
+	if err != nil {
+		return nil, fmt.Errorf("watcher %w", err)
+	}
+
+	files := buffer(modified, r.maxFiles, r.waitFor)
+	partialCommand := exec.NewPartial(r.commandArgs...)
+	if partialCommand.Err != nil {
+		return nil, fmt.Errorf("command %w", partialCommand.Err)
+	}
+	go func() {
+		defer close(r.done)
+		executor(files, partialCommand, skipArgs, r.clearTerm)
+	}()
+
+	return cleanup, nil
+}
+
+func (r *Rerun) Wait() error {
+	<-r.done
+	return nil
+}
+
 type FilterPaths []*regexp.Regexp
 
 func (f *FilterPaths) mustRegexp(blacklist, sep string) {
@@ -75,7 +112,6 @@ func main() {
 	flag.BoolVar(&clearTerm, "c", false, "clear terminal before each command")
 	flag.Var(&watchDirs, "d", "directories to watch, multiple use of flag allowed (default .)")
 	flag.Parse()
-	skipArgs := maxFiles == 0
 
 	if len(watchDirs) == 0 {
 		watchDirs = append(watchDirs, ".")
@@ -92,9 +128,18 @@ func main() {
 	filterPaths.mustRegexp(blDefault, "\n")
 	filterPaths.mustRegexp(os.Getenv(blEnvName), ":")
 
-	modified, cleanup, err := watcher(watchDirs, filterPaths)
+	rerun := Rerun{
+		watchDirs:   watchDirs,
+		filterPaths: filterPaths,
+		maxFiles:    maxFiles,
+		waitFor:     waitFor,
+		commandArgs: args,
+		clearTerm:   clearTerm,
+	}
+
+	cleanup, err := rerun.Start()
 	if err != nil {
-		slog.Error("starting watcher", "error", err)
+		slog.Error("starting runner", "error", err)
 		os.Exit(1)
 	}
 	defer cleanup()
@@ -103,9 +148,6 @@ func main() {
 		cleanup()
 	}()
 
-	files := buffer(modified, maxFiles, waitFor)
-	partialCommand := exec.NewPartial(args...)
-	// Blocks main goroutine
-	executor(files, partialCommand, skipArgs, clearTerm)
+	rerun.Wait()
 	slog.Info("done")
 }
