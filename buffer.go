@@ -14,9 +14,12 @@ func buffer(files <-chan string, buffSize int, waitFor time.Duration) <-chan []s
 	// Change to only one file has falls back on timer.
 	buffSize = max(buffSize, 2)
 
+	timer := time.NewTimer(0)
+	if !timer.Stop() {
+		<-timer.C
+	}
+
 	go func() {
-		timer := time.NewTimer(waitFor)
-		timer.Stop()
 		defer timer.Stop()
 		defer close(args)
 	loop:
@@ -33,16 +36,18 @@ func buffer(files <-chan string, buffSize int, waitFor time.Duration) <-chan []s
 					continue
 				}
 				slog.Debug("runner trigerred by full buffer")
+				if !timer.Stop() {
+					<-timer.C
+				}
 
 			case <-timer.C:
 				if len(modified) == 0 {
 					// This should not happen.
-					timer.Stop()
+					slog.Warn("runner trigerred by delay with empty modified set")
 					continue
 				}
 				slog.Debug("runner trigerred by delay")
 			}
-			timer.Stop()
 			// Send files because of full buffer or timer firing with non empty buffer
 			args <- drainModified(modified)
 		}
