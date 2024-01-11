@@ -23,11 +23,16 @@ func NewPartial(args ...string) *Partial {
 }
 
 func (p *Partial) Run(args ...string) error {
-	cmd := p.Cmd // Make a copy of command before applying remaining args
-	cmd.Args = append(cmd.Args, args...)
+	cmd := p.FullCmd(args...)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("exec %s: %w", cmd.String(), err)
 	}
 	return nil
+}
+
+func (p *Partial) FullCmd(args ...string) *osexec.Cmd {
+	cmd := p.Cmd // Make a copy of command before applying remaining args
+	cmd.Args = append(cmd.Args, args...)
+	return &cmd
 }
