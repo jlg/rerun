@@ -93,7 +93,7 @@ func TestRerun(t *testing.T) {
 		waitFor:     20 * time.Millisecond,
 		commandArgs: []string{"echo"},
 	}
-	rerun.filterPaths.mustRegexp(`.*\.skip`, "\n")
+	rerun.filterPaths.MustRegexp(`.*\.skip`, "\n")
 
 	r, w, err := os.Pipe()
 	internal.NoErr(t, err)
