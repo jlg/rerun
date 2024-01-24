@@ -33,6 +33,7 @@ func (f *multiFlag) Set(value string) error {
 	return nil
 }
 
+// Rerun service.
 type Rerun struct {
 	watchDirs   []string
 	filterPaths FilterPaths
@@ -43,6 +44,7 @@ type Rerun struct {
 	done        chan struct{}
 }
 
+// Start starts service and returns cancel func.
 func (r *Rerun) Start() (func(), error) {
 	skipArgs := r.maxFiles == 0
 	r.done = make(chan struct{})
@@ -65,21 +67,25 @@ func (r *Rerun) Start() (func(), error) {
 	return cleanup, nil
 }
 
+// Wait waits for service to finish (either by canceling or fsnotify error).
 func (r *Rerun) Wait() error {
 	<-r.done
 	return nil
 }
 
+// FilterPaths represents regexp to be used as filter for file paths events.
 type FilterPaths []*regexp.Regexp
 
-func (f *FilterPaths) mustRegexp(blacklist, sep string) {
-	bl := strings.Split(strings.Trim(blacklist, sep), sep)
+// MustRegexp complile all regexp from list separated by sep.
+func (f *FilterPaths) MustRegexp(list, sep string) {
+	bl := strings.Split(strings.Trim(list, sep), sep)
 	for _, p := range bl {
 		re := regexp.MustCompile(`^` + p + `$`)
 		*f = append(*f, re)
 	}
 }
 
+// Match checks if path mathches any of FilterPaths regexps.
 func (f FilterPaths) Match(path string) bool {
 	if f == nil {
 		return false
@@ -125,8 +131,8 @@ func main() {
 	signal.Notify(sigs, os.Interrupt)
 
 	filterPaths := FilterPaths{}
-	filterPaths.mustRegexp(blDefault, "\n")
-	filterPaths.mustRegexp(os.Getenv(blEnvName), ":")
+	filterPaths.MustRegexp(blDefault, "\n")
+	filterPaths.MustRegexp(os.Getenv(blEnvName), ":")
 
 	rerun := Rerun{
 		watchDirs:   watchDirs,

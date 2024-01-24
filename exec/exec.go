@@ -1,3 +1,4 @@
+// Package exec provides osexec.Cmd with partial args.
 package exec
 
 import (
@@ -6,10 +7,12 @@ import (
 	osexec "os/exec"
 )
 
+// Partial implements osexec.Cmd wiht part of arguments applied.
 type Partial struct {
 	osexec.Cmd
 }
 
+// NewParial creates new Partial with os.Stdout and os.Stderr and inital args.
 func NewPartial(args ...string) *Partial {
 	p := Partial{}
 	if len(args) == 0 {
@@ -22,8 +25,10 @@ func NewPartial(args ...string) *Partial {
 	return &p
 }
 
+// Run finalizes the partial command but appending reminder args to a Cmd
+// and Runs the finalized Cmd.
 func (p *Partial) Run(args ...string) error {
-	cmd := p.FullCmd(args...)
+	cmd := p.Finalize(args...)
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("exec %s: %w", cmd.String(), err)
@@ -31,7 +36,9 @@ func (p *Partial) Run(args ...string) error {
 	return nil
 }
 
-func (p *Partial) FullCmd(args ...string) *osexec.Cmd {
+// Finalize finalizes the Parital by copying embeded Cmd and appending reminder
+// args to he Cmd.
+func (p *Partial) Finalize(args ...string) *osexec.Cmd {
 	cmd := p.Cmd // Make a copy of command before applying remaining args
 	cmd.Args = append(cmd.Args, args...)
 	return &cmd

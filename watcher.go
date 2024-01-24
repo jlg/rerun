@@ -12,8 +12,8 @@ type Filter interface {
 	Match(s string) bool
 }
 
-// Watches for file Create and Write events in paths and filters out blacklisted filenames.
-// Pass modified filename.
+// Watches for file Create and Write events in paths and filters out
+// blacklisted filenames. Propagates modified filename ot output chan.
 func watcher(paths []string, filter Filter) (<-chan string, func(), error) {
 	if len(paths) == 0 {
 		return nil, nil, errors.New("no paths to watch")
@@ -40,6 +40,7 @@ func watcher(paths []string, filter Filter) (<-chan string, func(), error) {
 	return files, cleanup, nil
 }
 
+// Watch loop fsnotify.Watcher.
 func watchLoop(fswatcher *fsnotify.Watcher, filter Filter) <-chan string {
 	files := make(chan string)
 
