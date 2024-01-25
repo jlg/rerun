@@ -19,5 +19,5 @@ Features
 Install
 -------
 ```sh
-go install https://github.com/jlg/rerun
+go install github.com/jlg/rerun@latest
 ```
