@@ -7,12 +7,12 @@ import (
 	osexec "os/exec"
 )
 
-// Partial implements osexec.Cmd wiht part of arguments applied.
+// Partial implements osexec.Cmd with part of arguments applied.
 type Partial struct {
 	osexec.Cmd
 }
 
-// NewParial creates new Partial with os.Stdout and os.Stderr and inital args.
+// NewParial creates new Partial with os.Stdout and os.Stderr and initial args.
 func NewPartial(args ...string) *Partial {
 	p := Partial{}
 	if len(args) == 0 {
@@ -36,8 +36,8 @@ func (p *Partial) Run(args ...string) error {
 	return nil
 }
 
-// Finalize finalizes the Parital by copying embeded Cmd and appending reminder
-// args to he Cmd.
+// Finalize finalizes the Parital by copying embedded Cmd and appending
+// remaining args to the Cmd.
 func (p *Partial) Finalize(args ...string) *osexec.Cmd {
 	cmd := p.Cmd // Make a copy of command before applying remaining args
 	cmd.Args = append(cmd.Args, args...)
